@@ -7,6 +7,9 @@
 :root{font-family:system-ui,sans-serif;color:#172c32;background:#f1f5f4;font-size:16px}*{box-sizing:border-box}body{margin:0}header{background:#123c38;color:white;padding:36px max(20px,calc((100vw - 1120px)/2))}h1{margin:8px 0;font-size:clamp(28px,5vw,42px);letter-spacing:-1px}header p{color:#c4ded7;max-width:650px}main{max-width:1160px;margin:auto;padding:24px 20px 50px}.tag{font-size:12px;letter-spacing:2px;text-transform:uppercase}.grid{display:grid;grid-template-columns:360px 1fr;gap:22px;align-items:start}.card{background:white;border:1px solid #dce5e2;border-radius:18px;padding:24px;margin-bottom:22px;box-shadow:0 4px 18px #123c3805}h2{font-size:20px;margin:0 0 20px}label{display:block;font-size:14px;font-weight:600;margin:14px 0 7px}input,select,textarea,button{font:inherit}input,select,textarea{width:100%;padding:11px;border:1px solid #b7c9c3;border-radius:8px;background:white;color:#172c32}textarea{resize:vertical}button{border:0;border-radius:8px;padding:11px 15px;background:#146b59;color:white;cursor:pointer;font-weight:600}button:hover{filter:brightness(.93)}button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #dfac32;outline-offset:2px}.secondary{background:#e7f0ec;color:#194d40}.danger{background:#fae9e7;color:#963b30}.wide{width:100%;margin-top:18px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.muted,small{color:#61756f;font-size:13px;line-height:1.5}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:22px}.stat{background:white;border:1px solid #dce5e2;border-radius:14px;padding:18px}.stat strong{display:block;font-size:28px;color:#146b59}.stat span{font-size:13px;color:#61756f}.set{display:grid;grid-template-columns:26px 1fr 1fr 38px;gap:8px;align-items:center;margin-top:9px}.set button{padding:9px}.set-head{font-size:12px;color:#61756f}.plot{height:280px;position:relative;margin-top:18px}canvas{width:100%;height:100%;display:block}.filters{display:grid;grid-template-columns:1fr 1fr;gap:12px}.filters label{margin-top:0}.history-item{padding:17px 0;border-bottom:1px solid #e4ebe8}.history-item:last-child{border:0}.history-title{display:flex;justify-content:space-between;gap:12px;align-items:start}.history-title strong{overflow-wrap:anywhere}.history-item p{margin:8px 0;white-space:pre-wrap;overflow-wrap:anywhere}.actions button{font-size:12px;padding:7px 10px}.empty{padding:30px 12px;text-align:center;color:#61756f}.tools{display:flex;gap:10px;flex-wrap:wrap}.message{min-height:24px;font-size:14px;margin:10px 0;color:#146b59}footer{font-size:13px;color:#61756f} @media(max-width:820px){.grid{grid-template-columns:1fr}.stats{gap:7px}.stat{padding:12px}.stat strong{font-size:24px}.card{padding:18px}.filters{grid-template-columns:1fr}header{padding:26px 20px}}
 [hidden]{display:none!important}button:disabled{opacity:.5;cursor:wait}.account{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap}.auth-card{max-width:520px;margin:0 auto 24px}.status{padding:12px 16px;border-radius:10px;background:#e7f0ec;margin-bottom:18px;overflow-wrap:anywhere}.error{background:#fae9e7;color:#963b30}.account-email{overflow-wrap:anywhere}.auth-card button{margin-top:12px}fieldset{padding:0;margin:0;border:0;min-width:0}table{text-align:left;font-size:13px;border-collapse:collapse}td,th{padding:8px;border-bottom:1px solid #e4ebe8}
 </style>
+<style>
+.auth-options{display:grid;gap:8px;margin:12px 0}.auth-options label{display:flex;align-items:center;gap:9px;margin:0;font-weight:500}.auth-options input[type=checkbox]{width:auto;margin:0;accent-color:#146b59}.auth-hint{margin:0 0 16px}.exercise-new{margin-top:8px}.auth-card .row button{flex:1}
+</style>
 </head>
 <body>
 <header><span class="tag">Dein persönliches Trainingsbuch</span><h1>Jeder Satz zählt.</h1><p>Training eintragen, vergangene Einheiten ansehen und Fortschritte sichtbar machen. Mit persönlichem Konto und Online-Speicherung für Handy und Computer.</p></header>
@@ -54,7 +57,27 @@ function validate(data){
 function notify(t,error=false){$('message').textContent=t;$('message').style.color=error?'#963b30':'#146b59';}
 function cloud(text,error=false){$('cloudStatus').textContent=text;$('cloudStatus').classList.toggle('error',error);}
 function authMessage(text){$('authMessage').textContent=text;}
-function setBusy(value){busy=value;$('appFields').disabled=value||!loaded||!user;for(const id of ['reload','logout','login','signup','forgot'])$(id).disabled=value;$('recoveryForm').querySelector('button').disabled=value;}
+let registrationMode=false;
+function setupAuthControls(){
+ const form=$('authForm'),password=$('password'),submitRow=form.querySelector('.row'),options=document.createElement('div');options.className='auth-options';
+ const stayLabel=document.createElement('label'),stay=document.createElement('input');stay.type='checkbox';stay.id='staySignedIn';stay.checked=true;
+ try{stay.checked=localStorage.getItem('fitnessTrackerStaySignedIn')!=='false';}catch(error){cloud('Die Einstellung „Angemeldet bleiben“ konnte nicht geladen werden: '+friendly(error),true);}
+ stayLabel.append(stay,document.createTextNode('Auf diesem Gerät angemeldet bleiben'));options.append(stayLabel);
+ const visibilityLabel=document.createElement('label'),visibility=document.createElement('input');visibility.type='checkbox';visibility.id='showPassword';visibilityLabel.append(visibility,document.createTextNode('Passwort anzeigen'));options.append(visibilityLabel);
+ const confirmLabel=document.createElement('label');confirmLabel.htmlFor='confirmPassword';confirmLabel.textContent='Passwort wiederholen';confirmLabel.className='auth-confirm-label';
+ const confirmInput=document.createElement('input');confirmInput.id='confirmPassword';confirmInput.type='password';confirmInput.autocomplete='new-password';confirmInput.minLength=8;confirmInput.maxLength=128;confirmInput.hidden=true;confirmLabel.hidden=true;
+ const hint=document.createElement('p');hint.className='muted auth-hint';hint.textContent='Ein Konto genügt, um deine Trainingsdaten auf deinen Geräten zu synchronisieren.';
+ form.insertBefore(hint,form.firstChild);form.insertBefore(confirmLabel,submitRow);form.insertBefore(confirmInput,submitRow);form.insertBefore(options,submitRow);
+ visibility.addEventListener('change',()=>{password.type=visibility.checked?'text':'password';confirmInput.type=visibility.checked?'text':'password';visibilityLabel.lastChild.textContent=visibility.checked?'Passwort verbergen':'Passwort anzeigen';});
+ stay.addEventListener('change',()=>{try{const key='sb-'+new URL(SUPABASE_URL).hostname.split('.')[0]+'-auth-token',source=stay.checked?sessionStorage:localStorage,target=stay.checked?localStorage:sessionStorage,stored=source.getItem(key);if(stored){target.setItem(key,stored);source.removeItem(key);}localStorage.setItem('fitnessTrackerStaySignedIn',String(stay.checked));}catch(error){stay.checked=!stay.checked;cloud('Die Anmeldeeinstellung konnte nicht gespeichert werden: '+friendly(error),true);}});
+ const recoveryLabel=document.createElement('label'),recoveryToggle=document.createElement('input'),recoveryField=$('newPassword');
+ recoveryLabel.className='auth-options';recoveryLabel.style.display='flex';recoveryLabel.style.alignItems='center';recoveryLabel.style.gap='9px';recoveryLabel.style.fontWeight='500';recoveryToggle.type='checkbox';recoveryToggle.id='showNewPassword';recoveryLabel.append(recoveryToggle,document.createTextNode('Passwort anzeigen'));recoveryField.insertAdjacentElement('afterend',recoveryLabel);
+ recoveryToggle.addEventListener('change',()=>{recoveryField.type=recoveryToggle.checked?'text':'password';recoveryLabel.lastChild.textContent=recoveryToggle.checked?'Passwort verbergen':'Passwort anzeigen';});
+ const setMode=signup=>{registrationMode=signup;$('login').textContent=signup?'Konto erstellen':'Anmelden';$('signup').textContent=signup?'Schon ein Konto? Anmelden':'Neu registrieren';confirmLabel.hidden=!signup;confirmInput.hidden=!signup;confirmInput.required=signup;password.autocomplete=signup?'new-password':'current-password';visibility.checked=false;password.type='password';confirmInput.type='password';authMessage('');};
+ $('signup').onclick=()=>setMode(!registrationMode);
+ $('authForm').onsubmit=event=>{event.preventDefault();if(registrationMode&&password.value!==confirmInput.value){confirmInput.setCustomValidity('Die Passwörter stimmen nicht überein.');confirmInput.reportValidity();return;}confirmInput.setCustomValidity('');authenticate(registrationMode);};
+}
+function setBusy(value){busy=value;$('appFields').disabled=value||!loaded||!user;for(const id of ['reload','logout','login','signup','forgot','staySignedIn','showPassword','showNewPassword','confirmPassword'])$(id).disabled=value;$('recoveryForm').querySelector('button').disabled=value;}
 function requireUser(){if(!db||!user)throw Error('Bitte zuerst anmelden.');if(!loaded)throw Error('Bitte zuerst die Daten erfolgreich laden.');if(busy)throw Error('Bitte den laufenden Vorgang abwarten.');return {id:user.id,epoch};}
 function checkOwner(owner){if(!user||user.id!==owner.id||epoch!==owner.epoch)throw Error('Die Sitzung hat sich geändert. Bitte erneut anmelden.');}
 function rowToEntry(row){return {id:row.id,date:row.training_date,exercise:row.exercise,sets:row.sets,notes:row.notes};}
@@ -73,6 +96,32 @@ function numberSets(){[...$('setRows').children].forEach((r,i)=>{r.firstChild.te
 function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 function reset(){editing=null;draftId=null;$('form').reset();$('date').value=today();$('setRows').replaceChildren();addSet();$('formTitle').textContent='Training eintragen';$('cancel').hidden=true;}
 function exercises(){return [...new Set(entries.map(e=>e.exercise))].sort((a,b)=>a.localeCompare(b,'de'));}
+function setupExerciseDropdown(){
+ const input=$('exercise'),label=document.querySelector('label[for="exercise"]'),select=document.createElement('select'),newLabel=document.createElement('label'),newInput=document.createElement('input');
+ input.type='hidden';input.required=false;input.removeAttribute('list');
+ select.id='exerciseSelect';select.required=true;label.htmlFor=select.id;input.insertAdjacentElement('afterend',select);
+ newLabel.htmlFor='newExercise';newLabel.textContent='Name der neuen Übung';newLabel.className='exercise-new';newLabel.hidden=true;newInput.id='newExercise';newInput.type='text';newInput.maxLength=80;newInput.placeholder='z. B. Kniebeugen';newInput.hidden=true;newInput.required=false;newInput.className='exercise-new';
+ select.insertAdjacentElement('afterend',newLabel);newLabel.insertAdjacentElement('afterend',newInput);
+ const sync=()=>{const adding=select.value==='__new__';newLabel.hidden=!adding;newInput.hidden=!adding;newInput.required=adding;input.value=adding?newInput.value.trim():select.value;};
+ select.addEventListener('change',sync);newInput.addEventListener('input',sync);
+ $('history').addEventListener('click',event=>{if(event.target.closest('button')?.textContent==='Bearbeiten')populateExerciseSelect(input.value);});
+}
+function populateExerciseSelect(selected){
+ const select=$('exerciseSelect');if(!select)return;const value=selected===undefined?select.value:selected,names=exercises();select.replaceChildren(new Option('Übung auswählen …',''),...names.map(name=>new Option(name,name)),new Option('+ Neue Übung hinzufügen …','__new__'));
+ select.value=names.includes(value)||value==='__new__'?value:'';const adding=select.value==='__new__';$('newExercise').hidden=!adding;document.querySelector('label[for="newExercise"]').hidden=!adding;$('newExercise').required=adding;$('exercise').value=adding?$('newExercise').value.trim():select.value;
+}
+function authStorage(){
+ const key='sb-'+new URL(SUPABASE_URL).hostname.split('.')[0]+'-auth-token';
+ const active=()=> $('staySignedIn').checked?localStorage:sessionStorage;
+ const inactive=()=> $('staySignedIn').checked?sessionStorage:localStorage;
+ return {
+  getItem(name){const store=active(),other=inactive(),stored=store.getItem(name);if(stored!==null)return stored;const previous=other.getItem(name);if(previous!==null){store.setItem(name,previous);other.removeItem(name);}return previous;},
+  setItem(name,value){active().setItem(name,value);inactive().removeItem(name);},
+  removeItem(name){localStorage.removeItem(name);sessionStorage.removeItem(name);}
+ };
+}
+const originalRender=render;
+render=function(){const selected=$('exerciseSelect')?.value;originalRender();populateExerciseSelect(selected);};
 function options(id,all){const select=$(id),old=select.value;select.replaceChildren();if(all)select.add(new Option('Alle Übungen',''));for(const name of exercises())select.add(new Option(name,name));if([...select.options].some(o=>o.value===old))select.value=old;}
 function render(){options('chartExercise',false);options('historyExercise',true);$('exercises').replaceChildren(...exercises().map(x=>new Option(x,x)));$('days').textContent=new Set(entries.map(e=>e.date)).size;$('count').textContent=entries.length;$('setsCount').textContent=entries.reduce((s,e)=>s+e.sets.length,0);renderHistory();drawChart();}
 function renderHistory(){const list=$('history');list.replaceChildren();const filtered=entries.filter(e=>(!$('historyExercise').value||e.exercise===$('historyExercise').value)&&(!$('historyDate').value||e.date===$('historyDate').value)).sort((a,b)=>b.date.localeCompare(a.date));if(!filtered.length){const p=document.createElement('p');p.className='empty';p.textContent='Noch keine passenden Einträge. Trage dein erstes Training ein.';list.append(p);return;}
@@ -118,9 +167,12 @@ function applySession(session,event){
  if(user&&!recovering&&!loaded&&!busy)void loadEntries();
 }
 async function networkFetch(url,options={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);const abort=()=>controller.abort();if(options.signal?.aborted)controller.abort();options.signal?.addEventListener('abort',abort,{once:true});try{return await fetch(url,{...options,signal:controller.signal});}finally{clearTimeout(timer);options.signal?.removeEventListener('abort',abort);}}
+setupAuthControls();setupExerciseDropdown();
+const originalReset=reset;
+reset=function(){originalReset();populateExerciseSelect('');};
 reset();render();
 if(!window.supabase){cloud('Die Verbindungsbibliothek konnte nicht geladen werden. Internet prüfen und Seite neu laden.',true);for(const id of ['login','signup','forgot'])$(id).disabled=true;}
-else{try{db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{global:{fetch:networkFetch},auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});db.auth.onAuthStateChange((event,session)=>{setTimeout(()=>applySession(session,event),0);});}catch(error){cloud('Verbindung konnte nicht vorbereitet werden: '+friendly(error),true);}}
+else{try{db=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{global:{fetch:networkFetch},auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storage:authStorage()}});db.auth.onAuthStateChange((event,session)=>{setTimeout(()=>applySession(session,event),0);});}catch(error){cloud('Verbindung konnte nicht vorbereitet werden: '+friendly(error),true);}}
 </script>
 </body>
 </html>
