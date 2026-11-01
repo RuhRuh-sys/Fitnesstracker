@@ -1,2 +1,2 @@
-# FItnesstracker
+# Fitnesstracker
 Fitnesstracker
